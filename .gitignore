@@ -1,0 +1,52 @@
+
+# Virtual environment
+ml/venv/
+
+# Dataset
+ml/creditcard.csv
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Model files
+*.h5
+*.pkl
+*.joblib
+
+# ── Python virtual environment ─────────────────────────────
+ml/venv/
+venv/
+.venv/
+env/
+
+# ── Python cache ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# ── Dataset (144MB — too large for GitHub) ──────────────────
+ml/creditcard.csv
+creditcard.csv
+*.csv
+
+# ── OS files ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor files ────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+
+# ── Environment variables ───────────────────────────────────
+.env
+.env.local
+
+# ── IMPORTANT: model files ARE committed to GitHub ──────────
+# The trained model files (autoencoder.keras, xgb_model.json,
+# scalers.pkl, metadata.pkl) should be added and committed
+# so Render can load them. Do NOT add these to .gitignore.
+# ml/models/ is intentionally NOT ignored.

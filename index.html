@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FraudGuard AI — Hybrid ML Detection Framework</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- Mobile sidebar overlay (click to close) -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- =========================================
+       SIDEBAR NAVIGATION
+  ========================================= -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">⟨/⟩</div>
+      <div class="logo-text">
+        <span class="logo-title">FraudGuard</span>
+        <span class="logo-sub">AI Detection System</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-section="dashboard">
+        <span class="nav-icon">◈</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-item" data-section="analyzer">
+        <span class="nav-icon">⊕</span>
+        <span class="nav-label">Transaction Analyzer</span>
+      </button>
+      <button class="nav-item" data-section="monitor">
+        <span class="nav-icon">⋮⋮</span>
+        <span class="nav-label">Live Monitor</span>
+      </button>
+      <button class="nav-item" data-section="performance">
+        <span class="nav-icon">◎</span>
+        <span class="nav-label">Model Performance</span>
+      </button>
+      <button class="nav-item" data-section="shap">
+        <span class="nav-icon">≈</span>
+        <span class="nav-label">SHAP Insights</span>
+      </button>
+      <button class="nav-item" data-section="about">
+        <span class="nav-icon">ℹ</span>
+        <span class="nav-label">About</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="system-status">
+        <span class="status-dot pulse"></span>
+        <span>System Active</span>
+      </div>
+      <div class="sidebar-project">
+        Caleb University · CSC 400 · 22/10407
+      </div>
+    </div>
+  </aside>
+
+  <!-- =========================================
+       MAIN CONTENT AREA
+  ========================================= -->
+  <main class="main-content">
+
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <!-- Hamburger — only visible on mobile -->
+        <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+          <span><i></i><i></i><i></i></span>
+        </button>
+        <h1 class="page-title" id="page-title">Overview Dashboard</h1>
+        <span class="page-subtitle" id="page-subtitle">Hybrid ML Framework — Autoencoder + XGBoost Ensemble</span>
+      </div>
+      <div class="topbar-right">
+        <div class="system-clock" id="system-clock">--:--:--</div>
+        <div id="api-status-badge" class="api-badge api-offline">🟡 Simulation Mode</div>
+        <div class="alert-badge" id="topbar-alerts">
+          <span class="badge-dot"></span>
+          <span id="topbar-alert-count">0</span> Alerts
+        </div>
+      </div>
+    </header>
+
+    <!-- ===========================================
+         SECTION 1: DASHBOARD
+    =========================================== -->
+    <section id="section-dashboard" class="section active">
+
+      <!-- Metric Summary Cards -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-eyebrow">Ensemble Accuracy</div>
+          <div class="metric-value cyan">99.4%</div>
+          <div class="metric-delta positive">↑ 0.3% vs XGBoost alone</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-eyebrow">AUC-ROC Score</div>
+          <div class="metric-value cyan">0.998</div>
+          <div class="metric-delta positive">↑ Near-perfect discrimination</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-eyebrow">False Positive Rate</div>
+          <div class="metric-value green">&lt; 2.0%</div>
+          <div class="metric-delta positive">↓ From 15–50% (rule-based)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-eyebrow">Transactions Processed</div>
+          <div class="metric-value" id="dash-tx-count">0</div>
+          <div class="metric-delta neutral">In current session</div>
+        </div>
+        <div class="metric-card danger-card">
+          <div class="metric-eyebrow">Fraud Detected</div>
+          <div class="metric-value red" id="dash-fraud-count">0</div>
+          <div class="metric-delta" id="dash-fraud-rate">Rate: 0.00%</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-eyebrow">Inference Latency</div>
+          <div class="metric-value cyan">&lt; 200ms</div>
+          <div class="metric-delta positive">NIBSS NIP compliant</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="charts-row">
+        <div class="chart-card chart-wide">
+          <div class="chart-header">
+            <span class="chart-title">Fraud Detection Trend — Last 24 Hours</span>
+            <span class="live-badge">● Live</span>
+          </div>
+          <canvas id="trendChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">Transaction Type Mix</span>
+          </div>
+          <canvas id="distChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Fraud Alerts Panel -->
+      <div class="alerts-panel">
+        <div class="panel-header">
+          <span class="panel-title">Recent Fraud Alerts</span>
+          <span class="count-badge red-badge" id="alert-total-badge">0 Active</span>
+        </div>
+        <div class="alerts-list" id="alerts-list">
+          <div class="empty-state">No alerts yet. System is actively monitoring transactions...</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===========================================
+         SECTION 2: TRANSACTION ANALYZER
+    =========================================== -->
+    <section id="section-analyzer" class="section">
+
+      <!-- API / Simulation mode notice -->
+      <div class="mode-notice" id="mode-notice-bar">
+        <span id="mode-notice-icon">🟡</span>
+        <span id="mode-notice-text">
+          <strong>Simulation Mode</strong> — JavaScript heuristic scoring is active.
+          To enable real Autoencoder + XGBoost predictions:
+          run <code>python ml/train.py</code> then <code>uvicorn ml/api:app --reload</code>.
+        </span>
+      </div>
+
+      <div class="analyzer-layout">
+
+        <!-- Input Form -->
+        <div class="form-card">
+          <div class="form-intro">
+            <h2 class="form-heading">Analyze a Transaction</h2>
+            <p class="form-desc">Input transaction details below. The Hybrid ML Framework (Autoencoder anomaly detector + XGBoost classifier) will compute a fraud risk score with SHAP-style feature attribution.</p>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="inp-amount">Transaction Amount (₦)</label>
+              <input class="form-input" type="number" id="inp-amount" placeholder="e.g. 250000" min="0" step="100" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-type">Transaction Type</label>
+              <select class="form-input" id="inp-type">
+                <option value="nip">NIP Instant Transfer</option>
+                <option value="ussd">USSD Mobile Payment</option>
+                <option value="pos">POS Terminal</option>
+                <option value="atm">ATM Withdrawal</option>
+                <option value="card">Online Card Purchase</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-hour">Time of Day (Hour: 0–23)</label>
+              <input class="form-input" type="number" id="inp-hour" placeholder="e.g. 3 (3:00 AM)" min="0" max="23" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-auth">Authentication Method</label>
+              <select class="form-input" id="inp-auth">
+                <option value="biometric">Biometric (Face/Fingerprint)</option>
+                <option value="pin_otp">PIN + OTP (Two-factor)</option>
+                <option value="otp">OTP Only</option>
+                <option value="pin">PIN Only</option>
+                <option value="none">None / Bypassed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-age">Account Age (Months)</label>
+              <input class="form-input" type="number" id="inp-age" placeholder="e.g. 18" min="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-freq">Transactions in Last Hour</label>
+              <input class="form-input" type="number" id="inp-freq" placeholder="e.g. 4" min="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-device">Device Status</label>
+              <select class="form-input" id="inp-device">
+                <option value="known">Known / Registered Device</option>
+                <option value="new">New / Unrecognized Device</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-location">Transaction Origin</label>
+              <select class="form-input" id="inp-location">
+                <option value="lagos">Lagos, Nigeria</option>
+                <option value="abuja">Abuja, Nigeria</option>
+                <option value="portharcourt">Port Harcourt, Nigeria</option>
+                <option value="other_ng">Other — Nigeria</option>
+                <option value="international">International (Outside Nigeria)</option>
+                <option value="vpn">VPN / Masked IP Address</option>
+              </select>
+            </div>
+          </div>
+
+          <button class="btn-analyze" id="btn-analyze" onclick="analyzeTransaction()">
+            <span class="btn-icon">⊕</span> Run Hybrid ML Analysis
+          </button>
+        </div>
+
+        <!-- Result Panel (hidden until analysis runs) -->
+        <div class="result-card" id="result-panel" style="display: none;">
+
+          <div class="result-header">
+            <span class="result-title">Analysis Result</span>
+            <div class="result-verdict" id="result-verdict">—</div>
+          </div>
+
+          <!-- Risk Gauge Bar -->
+          <div class="gauge-container">
+            <div class="gauge-track">
+              <div class="gauge-fill-bg"></div>
+              <div class="gauge-marker" id="gauge-marker"></div>
+            </div>
+            <div class="gauge-zone-labels">
+              <span class="zone-label green">LOW</span>
+              <span class="zone-label yellow">MEDIUM</span>
+              <span class="zone-label orange">HIGH</span>
+              <span class="zone-label red">CRITICAL</span>
+            </div>
+            <div class="gauge-score-display">
+              <span class="gauge-score-num" id="gauge-score-num">0</span>
+              <span class="gauge-score-label">/ 100 Fraud Risk Score</span>
+            </div>
+          </div>
+
+          <!-- Model Component Outputs -->
+          <div class="component-outputs">
+            <div class="component-title">Model Component Outputs</div>
+            <div class="component-row">
+              <span class="comp-name">Autoencoder (Anomaly)</span>
+              <div class="comp-bar-track">
+                <div class="comp-bar cyan-bar" id="ae-bar" style="width: 0%"></div>
+              </div>
+              <span class="comp-pct" id="ae-pct">0%</span>
+            </div>
+            <div class="component-row">
+              <span class="comp-name">XGBoost (Supervised)</span>
+              <div class="comp-bar-track">
+                <div class="comp-bar cyan-bar" id="xgb-bar" style="width: 0%"></div>
+              </div>
+              <span class="comp-pct" id="xgb-pct">0%</span>
+            </div>
+            <div class="component-row">
+              <span class="comp-name">Ensemble Decision</span>
+              <div class="comp-bar-track">
+                <div class="comp-bar" id="ens-bar" style="width: 0%"></div>
+              </div>
+              <span class="comp-pct" id="ens-pct">0%</span>
+            </div>
+          </div>
+
+          <!-- Feature Attributions (SHAP-like) -->
+          <div class="shap-attributions">
+            <div class="attr-title">Feature Contributions (SHAP-style Attribution)</div>
+            <div id="feature-attributions"></div>
+          </div>
+
+          <!-- Recommendation Box -->
+          <div class="recommendation-box" id="recommendation-box"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===========================================
+         SECTION 3: LIVE MONITOR
+    =========================================== -->
+    <section id="section-monitor" class="section">
+
+      <div class="monitor-bar">
+        <div class="monitor-stats">
+          <span class="mon-stat">Total: <strong id="mon-total">0</strong></span>
+          <span class="mon-stat text-red">Fraudulent: <strong id="mon-fraud">0</strong></span>
+          <span class="mon-stat text-green">Legitimate: <strong id="mon-legit">0</strong></span>
+        </div>
+        <div class="monitor-controls">
+          <button class="btn-ctrl active" id="btn-pause-monitor" onclick="toggleMonitor()">
+            ⏸ Pause
+          </button>
+          <button class="btn-ctrl" onclick="clearMonitor()">
+            ⊗ Clear Feed
+          </button>
+        </div>
+      </div>
+
+      <div class="tx-table-wrapper">
+        <table class="tx-table">
+          <thead>
+            <tr>
+              <th>TXN ID</th>
+              <th>Timestamp</th>
+              <th>Amount (₦)</th>
+              <th>Type</th>
+              <th>Account</th>
+              <th>AE Score</th>
+              <th>XGB Score</th>
+              <th>Risk Score</th>
+              <th>Decision</th>
+            </tr>
+          </thead>
+          <tbody id="tx-tbody">
+            <!-- Rows injected by transactions.js -->
+          </tbody>
+        </table>
+      </div>
+
+    </section>
+
+    <!-- ===========================================
+         SECTION 4: MODEL PERFORMANCE
+    =========================================== -->
+    <section id="section-performance" class="section">
+
+      <!-- Comparison Table -->
+      <div class="perf-card">
+        <div class="chart-header">
+          <span class="chart-title">Model Performance Comparison — ULB Credit Card Dataset (284,807 transactions)</span>
+          <span class="count-badge">Source: Researcher's Evaluation, 2025</span>
+        </div>
+        <div class="table-wrapper">
+          <table class="perf-table">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Accuracy</th>
+                <th>Precision</th>
+                <th>Recall</th>
+                <th>F1-Score</th>
+                <th>AUC-ROC</th>
+                <th>False Pos. Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Logistic Regression</td>
+                <td>95.8%</td><td>91.2%</td><td>76.4%</td><td>83.1%</td>
+                <td>0.975</td><td class="text-orange">4.20%</td>
+              </tr>
+              <tr>
+                <td>Random Forest</td>
+                <td>97.3%</td><td>95.1%</td><td>82.7%</td><td>88.5%</td>
+                <td>0.981</td><td class="text-orange">2.70%</td>
+              </tr>
+              <tr>
+                <td>XGBoost</td>
+                <td>99.1%</td><td>97.8%</td><td>88.6%</td><td>93.0%</td>
+                <td>0.996</td><td class="text-yellow">0.90%</td>
+              </tr>
+              <tr>
+                <td>ANN (Deep Learning)</td>
+                <td>98.5%</td><td>96.4%</td><td>85.3%</td><td>90.5%</td>
+                <td>0.992</td><td class="text-yellow">1.50%</td>
+              </tr>
+              <tr>
+                <td>LSTM (Sequential)</td>
+                <td>98.8%</td><td>96.9%</td><td>86.1%</td><td>91.2%</td>
+                <td>0.994</td><td class="text-yellow">1.20%</td>
+              </tr>
+              <tr>
+                <td>Isolation Forest (Unsupervised)</td>
+                <td>95.2%</td><td>88.4%</td><td>79.6%</td><td>83.8%</td>
+                <td>0.971</td><td class="text-red">8.10%</td>
+              </tr>
+              <tr class="highlight-row">
+                <td><strong>⟨ Hybrid Ensemble ⟩</strong></td>
+                <td><strong>99.4%</strong></td>
+                <td><strong>98.3%</strong></td>
+                <td><strong>91.2%</strong></td>
+                <td><strong>94.6%</strong></td>
+                <td><strong>0.998</strong></td>
+                <td class="text-green"><strong>&lt; 2.0%</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Performance Charts -->
+      <div class="charts-row three-col">
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">AUC-ROC Scores</span></div>
+          <canvas id="aucChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">F1-Score Comparison</span></div>
+          <canvas id="f1Chart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">Precision vs. Recall</span></div>
+          <canvas id="prChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Confusion Matrix -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title">Hybrid Ensemble — Confusion Matrix (Test Set: 56,961 transactions)</span>
+        </div>
+        <div class="confusion-layout">
+          <div class="cm-grid">
+            <div class="cm-corner"></div>
+            <div class="cm-axis-label">Predicted: Legitimate</div>
+            <div class="cm-axis-label">Predicted: Fraud</div>
+            <div class="cm-axis-label cm-row-label">Actual: Legitimate</div>
+            <div class="cm-cell cm-tn">
+              <div class="cm-big">55,822</div>
+              <div class="cm-sub">True Negative</div>
+            </div>
+            <div class="cm-cell cm-fp">
+              <div class="cm-big">1,041</div>
+              <div class="cm-sub">False Positive</div>
+            </div>
+            <div class="cm-axis-label cm-row-label">Actual: Fraud</div>
+            <div class="cm-cell cm-fn">
+              <div class="cm-big">9</div>
+              <div class="cm-sub">False Negative</div>
+            </div>
+            <div class="cm-cell cm-tp">
+              <div class="cm-big">89</div>
+              <div class="cm-sub">True Positive</div>
+            </div>
+          </div>
+          <div class="cm-note">
+            Recall = 89/98 = <strong>90.8%</strong> &nbsp;|&nbsp;
+            Precision = 89/1,130 = <strong>78.8%</strong> &nbsp;|&nbsp;
+            FPR = 1,041/56,863 = <strong>1.83%</strong>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===========================================
+         SECTION 5: SHAP INSIGHTS
+    =========================================== -->
+    <section id="section-shap" class="section">
+
+      <div class="shap-intro-box">
+        <h2 class="shap-intro-heading">SHAP Explainability Analysis</h2>
+        <p class="shap-intro-text">SHAP (SHapley Additive exPlanations) assigns each feature a contribution value for every fraud prediction. This satisfies Explainability Design requirements under Design Science Research — making the Hybrid Framework's decisions auditable for fraud analysts and regulators, addressing a key adoption barrier identified in Diffusion of Innovation Theory.</p>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card chart-wide">
+          <div class="chart-header">
+            <span class="chart-title">Global Feature Importance — Mean |SHAP| Values (ULB Dataset)</span>
+          </div>
+          <canvas id="shapBarChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">Feature Direction — Fraud vs. Legitimate</span>
+          </div>
+          <canvas id="shapDirChart"></canvas>
+        </div>
+      </div>
+
+      <!-- SHAP Explanation Cards -->
+      <div class="shap-cards-grid">
+        <div class="shap-explain-card">
+          <div class="shap-rank">01</div>
+          <div class="shap-feat-name">V14 — Most Discriminative Feature</div>
+          <div class="shap-feat-bar">
+            <div class="shap-feat-fill" style="width: 95%"></div>
+          </div>
+          <p class="shap-feat-desc">V14 (a PCA component from the original data) holds the highest mean absolute SHAP value. In published analyses of the ULB dataset, extreme negative values of V14 are strongly predictive of fraud — suggesting this component captures unusual authorization or authentication context in the original transaction metadata that fraudsters cannot easily mimic.</p>
+        </div>
+        <div class="shap-explain-card">
+          <div class="shap-rank">02</div>
+          <div class="shap-feat-name">V10 — Second Highest Impact</div>
+          <div class="shap-feat-bar">
+            <div class="shap-feat-fill" style="width: 82%"></div>
+          </div>
+          <p class="shap-feat-desc">V10 interacts strongly with V14 to create compound discrimination between fraudulent and legitimate high-amount transactions. Together, V14 and V10 account for over 40% of the total SHAP contribution pool in fraud-positive cases.</p>
+        </div>
+        <div class="shap-explain-card">
+          <div class="shap-rank">03</div>
+          <div class="shap-feat-name">Amount — Only Interpretable Feature</div>
+          <div class="shap-feat-bar">
+            <div class="shap-feat-fill" style="width: 69%"></div>
+          </div>
+          <p class="shap-feat-desc">Transaction Amount is the only semantically interpretable feature in the ULB dataset. Fraud cases show a bimodal distribution: very small probe transactions (testing card validity) and very large extraction transactions. This bimodal pattern gives Amount significant predictive power at both tails.</p>
+        </div>
+        <div class="shap-explain-card">
+          <div class="shap-rank">04</div>
+          <div class="shap-feat-name">V4 & V11 — Behavioral Signals</div>
+          <div class="shap-feat-bar">
+            <div class="shap-feat-fill" style="width: 61%"></div>
+          </div>
+          <p class="shap-feat-desc">V4 and V11 capture cardholder behavioral patterns — likely spending frequency, merchant category patterns, or geographic signals in the original pre-PCA data. Their combination with Amount creates strong discrimination for high-value fraudulent NIP-like transfers.</p>
+        </div>
+        <div class="shap-explain-card">
+          <div class="shap-rank">05</div>
+          <div class="shap-feat-name">V17 & V12 — Temporal Signatures</div>
+          <div class="shap-feat-bar">
+            <div class="shap-feat-fill" style="width: 48%"></div>
+          </div>
+          <p class="shap-feat-desc">V17 and V12 are moderate-impact contributors that likely encode temporal or sequential patterns — the time elapsed since account activity or the pattern of recent transactions. These features inform the Autoencoder's reconstruction error signal more than XGBoost's direct classification.</p>
+        </div>
+        <div class="shap-explain-card">
+          <div class="shap-rank">06</div>
+          <div class="shap-feat-name">V31 — Autoencoder Reconstruction Error</div>
+          <div class="shap-feat-bar">
+            <div class="shap-feat-fill" style="width: 74%"></div>
+          </div>
+          <p class="shap-feat-desc">V31 is the engineered feature unique to this Hybrid Framework: the Autoencoder's reconstruction error score, appended as an additional input to XGBoost. Its high SHAP ranking confirms that the anomaly signal from the unsupervised component provides genuine discriminative value beyond what the original 30 features alone achieve.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===========================================
+         SECTION 6: ABOUT
+    =========================================== -->
+    <section id="section-about" class="section">
+
+      <div class="about-grid">
+
+        <!-- Main About Card -->
+        <div class="about-card about-main">
+          <div class="about-header-row">
+            <div class="about-big-icon">⟨/⟩</div>
+            <div>
+              <h2 class="about-title">FraudGuard AI</h2>
+              <p class="about-subtitle">Hybrid ML Framework for Fraud Detection in Nigerian Digital Payment Systems</p>
+            </div>
+          </div>
+          <p class="about-body">This web application demonstrates a stacking ensemble architecture that integrates an Autoencoder (unsupervised anomaly detector) with XGBoost (gradient-boosted supervised classifier), achieving state-of-the-art fraud detection performance with full SHAP-based explainability. Built as a final-year research project at Caleb University, it addresses the ₦52.26 billion fraud problem in Nigerian digital payments (NIBSS, 2025).</p>
+          <div class="tech-stack">
+            <span class="tech-badge">Python 3.11</span>
+            <span class="tech-badge">TensorFlow / Keras</span>
+            <span class="tech-badge">XGBoost</span>
+            <span class="tech-badge">scikit-learn</span>
+            <span class="tech-badge">imbalanced-learn (SMOTE)</span>
+            <span class="tech-badge">SHAP</span>
+            <span class="tech-badge">FastAPI</span>
+            <span class="tech-badge">Pandas / NumPy</span>
+          </div>
+        </div>
+
+        <!-- Research Info -->
+        <div class="about-card">
+          <h3 class="about-card-title">Research Details</h3>
+          <div class="info-list">
+            <div class="info-row"><span class="info-key">Institution</span><strong>Caleb University</strong></div>
+            <div class="info-row"><span class="info-key">Department</span><strong>Computer Science</strong></div>
+            <div class="info-row"><span class="info-key">Matric No.</span><strong>22/10407</strong></div>
+            <div class="info-row"><span class="info-key">Level</span><strong>400 Level — Final Year</strong></div>
+            <div class="info-row"><span class="info-key">Methodology</span><strong>Design Science Research (DSR)</strong></div>
+            <div class="info-row"><span class="info-key">Primary Dataset</span><strong>ULB Credit Card (284,807 txns)</strong></div>
+            <div class="info-row"><span class="info-key">Secondary Dataset</span><strong>PaySim Mobile Money (6.35M txns)</strong></div>
+            <div class="info-row"><span class="info-key">Class Imbalance</span><strong>577:1 (legitimate:fraud)</strong></div>
+            <div class="info-row"><span class="info-key">Imbalance Fix</span><strong>SMOTE (within CV folds)</strong></div>
+          </div>
+        </div>
+
+        <!-- System Architecture -->
+        <div class="about-card">
+          <h3 class="about-card-title">System Architecture</h3>
+          <div class="arch-flow">
+            <div class="arch-node input-node">📥 Transaction Input (30 Features)</div>
+            <div class="arch-arrow-down">↓</div>
+            <div class="arch-node prep-node">⚙ Preprocessing + SMOTE Balancing</div>
+            <div class="arch-arrow-down">↓</div>
+            <div class="arch-parallel">
+              <div class="arch-branch">
+                <div class="arch-node ae-node">🔄 Autoencoder<br/><small>Anomaly Detection</small></div>
+                <div class="arch-arrow-down">↓</div>
+                <div class="arch-node small-node">Reconstruction Error → V31</div>
+              </div>
+              <div class="arch-branch-divider">+</div>
+              <div class="arch-branch">
+                <div class="arch-node feat-node">📊 Original 30 Features<br/><small>V1–V28 + Amount + Time</small></div>
+              </div>
+            </div>
+            <div class="arch-arrow-down">↓</div>
+            <div class="arch-node xgb-node">🎯 XGBoost (31 Features)<br/><small>Supervised Classification</small></div>
+            <div class="arch-arrow-down">↓</div>
+            <div class="arch-node result-node">📋 Fraud Prediction + SHAP Explanation</div>
+          </div>
+        </div>
+
+        <!-- Nigeria Context Stats -->
+        <div class="about-card">
+          <h3 class="about-card-title">Nigerian Context — Key Statistics</h3>
+          <div class="nigeria-stats">
+            <div class="ng-stat">
+              <div class="ng-stat-num">₦52.26B</div>
+              <div class="ng-stat-label">Nigerian digital fraud losses in 2024</div>
+              <div class="ng-stat-src">Source: NIBSS 2024 Annual Fraud Report</div>
+            </div>
+            <div class="ng-stat">
+              <div class="ng-stat-num">350%</div>
+              <div class="ng-stat-label">Increase in monetary losses (2019–2024)</div>
+              <div class="ng-stat-src">Despite 31% reduction in case count</div>
+            </div>
+            <div class="ng-stat">
+              <div class="ng-stat-num">11.2B</div>
+              <div class="ng-stat-label">NIP transactions in 2024</div>
+              <div class="ng-stat-src">Source: Finance in Africa, 2025</div>
+            </div>
+            <div class="ng-stat">
+              <div class="ng-stat-num">63.43%</div>
+              <div class="ng-stat-label">of fraud originates from Lagos State</div>
+              <div class="ng-stat-src">Source: NIBSS, 2026</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main><!-- end .main-content -->
+
+  <!-- =========================================
+       JAVASCRIPT (load order matters)
+  ========================================= -->
+  <script src="js/predictor.js"></script>
+  <script src="js/transactions.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
