@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: free
     rootDir: ml
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install --prefer-binary -r requirements.txt
     startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
