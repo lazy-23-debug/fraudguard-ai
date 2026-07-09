@@ -26,7 +26,7 @@
 // Auto-detects whether we are running locally or on Vercel production.
 // After deploying your backend to Render, replace the RENDER_URL below
 // with your actual Render service URL (e.g. https://fraudguard-api.onrender.com)
-const RENDER_URL  = 'https://REPLACE-WITH-YOUR-RENDER-URL.onrender.com';
+const RENDER_URL  = 'https://fraudguard-api-ipus.onrender.com';
 
 const API_URL = (() => {
   const host    = window.location.hostname;
