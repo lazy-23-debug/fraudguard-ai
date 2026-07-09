@@ -21,11 +21,10 @@ MODELS_DIR = os.path.join(os.path.dirname(__file__), 'models')
 
 
 def _build_autoencoder():
-    """Rebuild exact same architecture as train.py — version-agnostic."""
     import tensorflow as tf
     inp = tf.keras.Input(shape=(30,), name='input')
     x   = tf.keras.layers.Dense(64, activation='relu', name='enc_1')(inp)
-    x   = tf.keras.layers.BatchNormalization(name='batch_normalization')(x)
+    x   = tf.keras.layers.BatchNormalization()(x)
     x   = tf.keras.layers.Dense(32, activation='relu', name='enc_2')(x)
     x   = tf.keras.layers.Dense(16, activation='relu', name='enc_3')(x)
     bn  = tf.keras.layers.Dense(8,  activation='relu', name='bottleneck')(x)
@@ -43,67 +42,32 @@ def _load_models() -> bool:
         import xgboost as xgblib
         import shap
 
-        ae_path      = os.path.join(MODELS_DIR, 'autoencoder.keras')
-        weights_path = os.path.join(MODELS_DIR, 'autoencoder.weights.h5')
-        xgb_path     = os.path.join(MODELS_DIR, 'xgb_model.json')
-        meta_path    = os.path.join(MODELS_DIR, 'metadata.pkl')
+        npy_path  = os.path.join(MODELS_DIR, 'ae_weights.npy')
+        xgb_path  = os.path.join(MODELS_DIR, 'xgb_model.json')
+        meta_path = os.path.join(MODELS_DIR, 'metadata.pkl')
 
-        for p in [xgb_path, meta_path]:
+        for p in [npy_path, xgb_path, meta_path]:
             if not os.path.exists(p):
                 print(f"  [API] Missing: {p}")
                 return False
 
-        # ── Build architecture then load weights ──────────────────────────────
-        # We rebuild in Python code (version-agnostic) then load only the
-        # numerical weights — this avoids all Keras serialization issues.
+        # ── Autoencoder — load from numpy file (100% version-agnostic) ───────
         print("[API] Building Autoencoder architecture...")
         _autoencoder = _build_autoencoder()
 
-        # Initialize weights by running one forward pass with dummy data
+        # Forward pass to initialize all layer weights
         _autoencoder(np.zeros((1, 30), dtype=np.float32))
 
-        # Try weight sources in order of preference
-        loaded = False
+        print("[API] Loading weights from ae_weights.npy...")
+        weights = list(np.load(npy_path, allow_pickle=True))
+        _autoencoder.set_weights(weights)
 
-        # Source 1: load_weights from .keras file (skips architecture parsing)
-        if os.path.exists(ae_path):
-            try:
-                _autoencoder.load_weights(ae_path)
-                print("[API] Weights loaded from autoencoder.keras ✓")
-                loaded = True
-            except Exception as e1:
-                print(f"  [API] .keras weights load failed: {e1}")
-
-        # Source 2: separate .weights.h5 file
-        if not loaded and os.path.exists(weights_path):
-            try:
-                _autoencoder.load_weights(weights_path)
-                print("[API] Weights loaded from autoencoder.weights.h5 ✓")
-                loaded = True
-            except Exception as e2:
-                print(f"  [API] .weights.h5 load failed: {e2}")
-
-        # Source 3: extract weights from inside the .keras zip file
-        if not loaded and os.path.exists(ae_path):
-            try:
-                import zipfile, tempfile
-                print("[API] Extracting weights from .keras zip...")
-                with tempfile.TemporaryDirectory() as tmp:
-                    with zipfile.ZipFile(ae_path, 'r') as z:
-                        z.extractall(tmp)
-                    for candidate in ['model.weights.h5', 'weights.h5']:
-                        wp = os.path.join(tmp, candidate)
-                        if os.path.exists(wp):
-                            _autoencoder.load_weights(wp)
-                            print(f"[API] Weights extracted from zip: {candidate} ✓")
-                            loaded = True
-                            break
-            except Exception as e3:
-                print(f"  [API] zip extraction failed: {e3}")
-
-        if not loaded:
-            print("  [API] Could not load Autoencoder weights from any source.")
-            return False
+        # Sanity check — weights should not all be zero
+        total_std = sum(w.std() for w in weights)
+        if total_std < 1e-6:
+            print("  [API] WARNING: weights look untrained (all near-zero)")
+        else:
+            print(f"[API] Autoencoder weights loaded ✓  ({len(weights)} arrays)")
 
         # ── XGBoost ──────────────────────────────────────────────────────────
         print("[API] Loading XGBoost...")
@@ -187,9 +151,9 @@ def _recommendation(level: str, amount: float, tx_type: str) -> str:
     t, a = tx_type.upper(), f"₦{amount:,.0f}"
     msgs = {
         'LOW':      f"✓ Transaction appears legitimate. Allow the {a} {t} to proceed.",
-        'MEDIUM':   f"⚠ Elevated risk on {a} {t}. Request additional authentication before completing.",
-        'HIGH':     f"⚡ High fraud risk. Hold {a} {t} pending manual review. Notify account holder.",
-        'CRITICAL': f"🚨 CRITICAL — Block Immediately. Freeze {a} {t} and initiate account lockout. File STR with NIBSS."
+        'MEDIUM':   f"⚠ Elevated risk on {a} {t}. Request additional authentication.",
+        'HIGH':     f"⚡ High fraud risk. Hold {a} {t} pending manual review.",
+        'CRITICAL': f"🚨 CRITICAL — Block Immediately. Freeze {a} {t} and file STR with NIBSS."
     }
     return msgs.get(level, msgs['MEDIUM'])
 
@@ -198,22 +162,22 @@ def _form_to_features(data: FormInput) -> np.ndarray:
     fv = np.random.randn(30) * 0.25
     fv[28] = np.log1p(data.amount) / np.log1p(25_000) - 1.0
     fv[29] = (data.hour / 23.0) * 2 - 1.0
-    auth_map = {'biometric': 0.0, 'pin_otp': 0.1, 'otp': 0.7, 'pin': 0.45, 'none': 2.8}
+    auth_map = {'biometric':0.0,'pin_otp':0.1,'otp':0.7,'pin':0.45,'none':2.8}
     a = auth_map.get(data.auth, 0.0)
     fv[13] -= a * 1.8; fv[9] -= a * 1.1
-    if data.amount > 1_500_000:   fv[3] += 1.5; fv[10] -= 1.2
-    elif data.amount > 500_000:   fv[3] += 0.9; fv[10] -= 0.7
-    elif data.amount < 600:       fv[0] -= 1.8; fv[3]  -= 0.9
-    if data.device == 'new':      fv[2] -= 1.1; fv[9]  -= 0.9
-    if 0 <= data.hour <= 4:       fv[16] -= 1.4
-    elif data.hour >= 22:         fv[16] -= 0.6
-    loc_map = {'lagos':0,'abuja':0,'portharcourt':0,'other_ng':0.15,'international':0.9,'vpn':2.0}
-    fv[11] -= loc_map.get(data.location, 0.0) * 1.0
-    if data.freq >= 10:   fv[6] -= 1.6
-    elif data.freq >= 6:  fv[6] -= 0.8
-    elif data.freq >= 4:  fv[6] -= 0.4
-    if data.age <= 1:     fv[20] -= 1.3
-    elif data.age <= 6:   fv[20] -= 0.6
+    if data.amount > 1_500_000:  fv[3] += 1.5; fv[10] -= 1.2
+    elif data.amount > 500_000:  fv[3] += 0.9; fv[10] -= 0.7
+    elif data.amount < 600:      fv[0] -= 1.8; fv[3]  -= 0.9
+    if data.device == 'new':     fv[2] -= 1.1; fv[9]  -= 0.9
+    if 0 <= data.hour <= 4:      fv[16] -= 1.4
+    elif data.hour >= 22:        fv[16] -= 0.6
+    loc = {'lagos':0,'abuja':0,'portharcourt':0,'other_ng':0.15,'international':0.9,'vpn':2.0}
+    fv[11] -= loc.get(data.location, 0.0)
+    if data.freq >= 10:  fv[6] -= 1.6
+    elif data.freq >= 6: fv[6] -= 0.8
+    elif data.freq >= 4: fv[6] -= 0.4
+    if data.age <= 1:    fv[20] -= 1.3
+    elif data.age <= 6:  fv[20] -= 0.6
     return fv.reshape(1, -1)
 
 
@@ -247,9 +211,9 @@ async def predict_demo(data: FormInput):
     if not _models_ready():
         raise HTTPException(503, "Models not loaded.")
     try:
-        features_30                      = _form_to_features(data)
-        ae_norm, xgb_p, ens, shap_dict  = _run_prediction(features_30)
-        level                            = _risk_level(ens)
+        features_30                     = _form_to_features(data)
+        ae_norm, xgb_p, ens, shap_dict = _run_prediction(features_30)
+        level                           = _risk_level(ens)
         return PredictionResult(
             fraud_probability  = round(ens, 4),
             ae_score           = round(ae_norm * 100, 1),
