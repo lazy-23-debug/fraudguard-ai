@@ -236,6 +236,10 @@ print(f"  AE alone — AUC-ROC  : {roc_auc_score(y_test, ae_test):.4f}")
 AE_PATH = os.path.join(MODELS_DIR, 'autoencoder.keras')
 autoencoder.save(AE_PATH)
 print(f"\n  Autoencoder saved → {AE_PATH}")
+# ADD THIS LINE immediately after autoencoder.save(AE_PATH)
+WEIGHTS_PATH = os.path.join(MODELS_DIR, 'autoencoder.weights.h5')
+autoencoder.save_weights(WEIGHTS_PATH)
+print(f"  Weights saved → {WEIGHTS_PATH}")
 
 # ══════════════════════════════════════════════════════════════════
 #  STEP 5: SMOTE — Class Imbalance Handling
